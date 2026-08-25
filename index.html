@@ -91,6 +91,12 @@
                 <span id="res-half" class="text-3xl font-black text-[#E67E22]">$0</span>
             </div>
 
+            <!-- 三個月利息 (新增) -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+                <span class="text-xl font-bold text-gray-600 mb-1">🍂 每三個月的利息</span>
+                <span id="res-quarter" class="text-3xl font-black text-[#E67E22]">$0</span>
+            </div>
+
             <!-- 一個月利息 -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
                 <span class="text-xl font-bold text-gray-600 mb-1">💬 每個月的利息</span>
@@ -109,6 +115,7 @@
         
         const resYear = document.getElementById('res-year');
         const resHalf = document.getElementById('res-half');
+        const resQuarter = document.getElementById('res-quarter'); // 新增
         const resMonth = document.getElementById('res-month');
 
         // 自動加上千分位 (本金)
@@ -152,11 +159,13 @@
             // 計算利息 (四捨五入到整數)
             let interestYear = Math.round(p * (r / 100));
             let interestHalf = Math.round(interestYear / 2);
+            let interestQuarter = Math.round(interestYear / 4); // 新增三個月(一季)利息
             let interestMonth = Math.round(interestYear / 12);
 
             // 更新畫面 (加上千分位與錢號)
             resYear.innerText = '$' + interestYear.toLocaleString('en-US');
             resHalf.innerText = '$' + interestHalf.toLocaleString('en-US');
+            resQuarter.innerText = '$' + interestQuarter.toLocaleString('en-US'); // 新增
             resMonth.innerText = '$' + interestMonth.toLocaleString('en-US');
 
             // 顯示結果
