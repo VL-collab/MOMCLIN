@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <!-- 這是手機版 RWD 的核心，強制 100% 寬度且禁止雙擊放大，讓網頁像 App 一樣完美貼合 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>定存利息計算器</title>
+    
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* 隱藏預設的數字上下箭頭，讓輸入框更乾淨 */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        /* 提供基礎字體，防止 Tailwind 載入前閃爍 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-[#FFF8E7] min-h-screen flex flex-col items-center justify-start sm:justify-center p-4 pt-8 pb-12">
+
+    <!-- 主容器 -->
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 sm:p-8 border-4 border-[#F3E5AB]">
+        
+        <!-- 大標題 -->
+        <h1 class="text-3xl sm:text-4xl font-black text-[#5C4033] text-center mb-8">
+            👵 定存利息計算器
+        </h1>
+
+        <div class="space-y-6">
+            <!-- 存款本金 -->
+            <div>
+                <label class="block text-2xl font-bold text-[#5C4033] mb-2">💰 存款本金 (元)</label>
+                <!-- inputmode="numeric" 與 pattern 確保手機跳出純數字鍵盤 -->
+                <input 
+                    type="text" 
+                    id="principal" 
+                    inputmode="numeric" 
+                    pattern="[0-9]*" 
+                    placeholder="例如：1,000,000"
+                    class="w-full text-3xl p-4 border-4 border-amber-200 rounded-2xl text-right text-[#5C4033] font-bold focus:border-amber-500 focus:outline-none transition-colors shadow-inner bg-amber-50"
+                >
+            </div>
+
+            <!-- 年利率 -->
+            <div>
+                <label class="block text-2xl font-bold text-[#5C4033] mb-2">📈 年利率 (%)</label>
+                <!-- inputmode="decimal" 確保手機跳出可輸入小數點的數字鍵盤 -->
+                <input 
+                    type="text" 
+                    id="rate" 
+                    inputmode="decimal" 
+                    placeholder="例如：1.5"
+                    class="w-full text-3xl p-4 border-4 border-amber-200 rounded-2xl text-right text-[#5C4033] font-bold focus:border-amber-500 focus:outline-none transition-colors shadow-inner bg-amber-50"
+                >
+            </div>
+
+            <!-- 錯誤訊息區塊 -->
+            <div id="error-msg" class="hidden text-red-500 text-xl font-bold text-center bg-red-100 p-3 rounded-xl">
+                請輸入正確的數字喔！
+            </div>
+
+            <!-- 超大按鈕 -->
+            <button 
+                id="calc-btn"
+                class="w-full bg-[#FF8C00] active:bg-[#E67E22] text-white text-3xl font-black py-5 rounded-2xl shadow-[0_6px_0_#D68910] active:shadow-[0_0px_0_#D68910] active:translate-y-1.5 transition-all mt-4 touch-manipulation"
+            >
+                開始計算利息
+            </button>
+        </div>
+
+        <!-- 結果顯示區塊 (預設隱藏) -->
+        <div id="result-box" class="hidden mt-8 space-y-4 bg-[#FFF8E7] p-5 rounded-2xl border-2 border-amber-300">
+            
+            <h2 class="text-2xl font-bold text-center text-[#5C4033] mb-4 border-b-2 border-amber-300 pb-2">
+                🎉 計算結果
+            </h2>
+
+            <!-- 一年利息 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+                <span class="text-xl font-bold text-gray-600 mb-1">💰 一年的利息</span>
+                <span id="res-year" class="text-4xl font-black text-[#D35400]">$0</span>
+            </div>
+
+            <!-- 半年利息 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+                <span class="text-xl font-bold text-gray-600 mb-1">📅 每半年的利息</span>
+                <span id="res-half" class="text-3xl font-black text-[#E67E22]">$0</span>
+            </div>
+
+            <!-- 一個月利息 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+                <span class="text-xl font-bold text-gray-600 mb-1">💬 每個月的利息</span>
+                <span id="res-month" class="text-3xl font-black text-[#F39C12]">$0</span>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        const principalInput = document.getElementById('principal');
+        const rateInput = document.getElementById('rate');
+        const calcBtn = document.getElementById('calc-btn');
+        const resultBox = document.getElementById('result-box');
+        const errorMsg = document.getElementById('error-msg');
+        
+        const resYear = document.getElementById('res-year');
+        const resHalf = document.getElementById('res-half');
+        const resMonth = document.getElementById('res-month');
+
+        // 自動加上千分位 (本金)
+        principalInput.addEventListener('input', function(e) {
+            // 移除非數字字元
+            let value = this.value.replace(/\D/g, '');
+            if (value === '') {
+                this.value = '';
+                return;
+            }
+            // 轉成整數並加上千分位
+            this.value = parseInt(value, 10).toLocaleString('en-US');
+        });
+
+        // 限制利率只能輸入數字和小數點
+        rateInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9.]/g, '');
+            // 防止輸入多個小數點
+            if ((this.value.match(/\./g) || []).length > 1) {
+                this.value = this.value.substring(0, this.value.lastIndexOf('.'));
+            }
+        });
+
+        // 計算邏輯
+        calcBtn.addEventListener('click', () => {
+            // 隱藏之前的錯誤或結果
+            errorMsg.classList.add('hidden');
+            resultBox.classList.add('hidden');
+
+            // 取得數值 (需先移除千分位逗號)
+            let principalStr = principalInput.value.replace(/,/g, '');
+            let p = parseFloat(principalStr);
+            let r = parseFloat(rateInput.value);
+
+            // 檢查輸入是否合法
+            if (isNaN(p) || isNaN(r) || p <= 0 || r <= 0) {
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // 計算利息 (四捨五入到整數)
+            let interestYear = Math.round(p * (r / 100));
+            let interestHalf = Math.round(interestYear / 2);
+            let interestMonth = Math.round(interestYear / 12);
+
+            // 更新畫面 (加上千分位與錢號)
+            resYear.innerText = '$' + interestYear.toLocaleString('en-US');
+            resHalf.innerText = '$' + interestHalf.toLocaleString('en-US');
+            resMonth.innerText = '$' + interestMonth.toLocaleString('en-US');
+
+            // 顯示結果
+            resultBox.classList.remove('hidden');
+            
+            // 手機版自動往下滑動到結果區 (延遲一下確保渲染完成)
+            setTimeout(() => {
+                resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        });
+    </script>
+</body>
+</html>
