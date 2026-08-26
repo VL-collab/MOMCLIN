@@ -14,30 +14,70 @@
             background-color: #FEF7E7;
             margin: 0;
             overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
+        
+        /* 實體按鍵基礎動畫 */
+        .btn-transition {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* 未使用 JS 強制鎖定時的預設按壓效果 */
         .btn-press:active {
-            transform: translateY(4px) scale(0.98);
+            transform: translateY(4px) scale(0.96);
+            filter: brightness(0.92); 
+            box-shadow: 0 0px 0 transparent !important; 
         }
+
+        /* JavaScript 控制的強制按壓狀態 (黃色高亮與縮小) */
+        .is-pressed {
+            transform: scale(0.92) !important;
+            background-color: #FDE68A !important; /* Tailwind amber-200 */
+            color: #8B4513 !important;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.1) !important;
+        }
+        
+        /* 本金格子專屬按壓效果 */
+        .grid-press {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .grid-press:active {
+            transform: scale(0.92);
+            background-color: #FDE68A !important; 
+            border-color: #F59E0B !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         @keyframes slideUp {
             from { transform: translateY(100%); }
             to { transform: translateY(0); }
         }
         .animate-slide-up {
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        /* 隱藏捲軸但保留滾動功能 */
+
+        /* 錯誤提示：柔和的半透明紅光閃爍 */
+        @keyframes flashSoftRed {
+            0%   { background-color: #FFFDF5; border-color: #FDE68A; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+            50%  { background-color: rgba(254, 226, 226, 0.9); border-color: rgba(248, 113, 113, 0.8); box-shadow: 0 0 15px rgba(248, 113, 113, 0.5); }
+            100% { background-color: #FFFDF5; border-color: #FDE68A; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        }
+        .animate-flash-error {
+            animation: flashSoftRed 0.6s ease-in-out 3; /* 閃爍 3 次 */
+        }
+
         ::-webkit-scrollbar {
             width: 0px;
             background: transparent;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-3 sm:p-6 pb-12 relative">
+<body class="min-h-screen flex flex-col items-center p-3 sm:p-6 pb-12 relative" ontouchstart="">
 
     <!-- HTML5 Canvas 背景特效 (金色粒子) -->
     <canvas id="bg-canvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
 
-    <!-- 主容器 (設定 z-10 確保在 Canvas 之上) -->
+    <!-- 主容器 -->
     <div class="w-full max-w-md bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-5 border-[3px] border-[#FDE68A] flex flex-col gap-5 z-10 relative mt-2">
         
         <h1 class="text-3xl font-black text-[#5C4033] text-center mt-2 drop-shadow-sm">
@@ -45,31 +85,28 @@
         </h1>
 
         <!-- ==================== 存款本金區塊 ==================== -->
-        <div class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A] shadow-inner">
+        <div class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A] shadow-inner" id="principal-input-box">
             <h2 class="text-2xl font-bold text-[#5C4033] text-center mb-4">
                 💰 存款本金有多少呢？
             </h2>
 
-            <!-- 總本金顯示 -->
             <div class="mb-5 p-4 bg-white rounded-xl text-center border-2 border-dashed border-[#FCD34D] shadow-sm flex flex-col items-center">
                 <span class="text-lg text-gray-500 font-bold block mb-1">👉 目前總本金為</span>
                 <div class="text-[36px] leading-none font-black text-[#D35400] mb-3 transition-all" id="live-total-num">
                     $0
                 </div>
-                <!-- 中文數字顯示 -->
-                <div class="text-[20px] sm:text-[22px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="live-total-zh">
+                <div class="text-[20px] sm:text-[22px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full transition-all" id="live-total-zh">
                     零元
                 </div>
             </div>
             
-            <!-- 單位輸入網格 -->
             <div class="grid grid-cols-2 gap-3" id="principal-grid">
-                <!-- JavaScript 動態渲染格子，保持 HTML 乾淨 -->
+                <!-- JavaScript 動態渲染格子 -->
             </div>
         </div>
 
-        <!-- ==================== 年利率區塊 ==================== -->
-        <div class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A] flex flex-col items-center cursor-pointer active:bg-amber-50 shadow-inner transition-colors" onclick="openRatePicker()">
+        <!-- ==================== 年利率區塊 (加入 id 供閃爍特效使用) ==================== -->
+        <div id="rate-input-box" class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A] flex flex-col items-center cursor-pointer grid-press shadow-inner transition-colors" onclick="openRatePicker()">
             <label class="block text-2xl font-bold text-[#5C4033] mb-2 pointer-events-none">
                 📈 年利率 (%)
             </label>
@@ -80,10 +117,10 @@
 
         <!-- ==================== 動作按鈕 ==================== -->
         <div class="flex gap-3">
-            <button onclick="resetAll()" class="w-1/3 btn-press bg-white border-2 border-[#D35400] text-[#D35400] text-xl font-bold py-4 rounded-2xl shadow-sm">
+            <button onclick="resetAll()" class="btn-press bg-white border-2 border-[#D35400] text-[#D35400] text-xl font-bold py-4 rounded-2xl shadow-[0_4px_0_#D35400] w-1/3">
                 🔄 重設
             </button>
-            <button onclick="calculate()" class="w-2/3 btn-press bg-[#FF8C00] text-white text-2xl font-black py-4 rounded-2xl shadow-[0_5px_0_#D68910]">
+            <button onclick="calculate()" class="btn-press bg-[#FF8C00] text-white text-2xl font-black py-4 rounded-2xl shadow-[0_5px_0_#D68910] w-2/3">
                 開始計算利息
             </button>
         </div>
@@ -94,7 +131,7 @@
                 🎉 計算結果
             </h2>
             <div id="results-container" class="flex flex-col gap-4">
-                <!-- JavaScript 動態渲染結果，保持 HTML 乾淨 -->
+                <!-- JavaScript 動態渲染結果 -->
             </div>
         </div>
 
@@ -110,7 +147,7 @@
                 <h3 class="text-2xl font-black text-gray-800">
                     請選擇 <span id="modal-unit-name" class="text-[#D35400] underline decoration-4 underline-offset-4">萬</span> 的數字
                 </h3>
-                <button onclick="setDigit('')" class="btn-press bg-red-100 text-red-600 font-bold text-xl px-4 py-2 rounded-xl">
+                <button onclick="clearDigit(this)" class="btn-press bg-red-100 text-red-600 font-bold text-xl px-4 py-2 rounded-xl shadow-[0_3px_0_#FCA5A5]">
                     清空這格
                 </button>
             </div>
@@ -125,7 +162,7 @@
         <div class="bg-[#F8FAFC] rounded-t-3xl p-5 pb-8 animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-gray-200">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-black text-gray-800">輸入年利率 (%)</h3>
-                <button onclick="closeModal('rate-modal')" class="btn-press bg-[#FF8C00] text-white font-bold text-xl px-6 py-2 rounded-xl shadow-[0_3px_0_#D68910]">
+                <button onclick="closeModal('rate-modal')" class="btn-press bg-[#FF8C00] text-white font-bold text-xl px-6 py-2 rounded-xl shadow-[0_4px_0_#D68910]">
                     確認
                 </button>
             </div>
@@ -139,6 +176,15 @@
 
     <script>
         // ==========================================
+        // 0. 手機震動回饋 (Haptic Feedback)
+        // ==========================================
+        function hapticTap() {
+            if (navigator.vibrate) {
+                navigator.vibrate(35); // 稍微加長一點點，讓回饋更結實
+            }
+        }
+
+        // ==========================================
         // 1. HTML5 Canvas 背景特效 (溫暖的金色粒子)
         // ==========================================
         const canvas = document.getElementById('bg-canvas');
@@ -149,14 +195,14 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             particles = [];
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < 30; i++) { // 稍微減少數量讓畫面更乾淨
                 particles.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
                     radius: Math.random() * 4 + 1,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: Math.random() * -1 - 0.2,
-                    alpha: Math.random() * 0.5 + 0.2
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: Math.random() * -1 - 0.15,
+                    alpha: Math.random() * 0.5 + 0.1
                 });
             }
         }
@@ -166,14 +212,12 @@
             particles.forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(253, 230, 138, ${p.alpha})`; // Tailwind amber-200
+                ctx.fillStyle = `rgba(253, 230, 138, ${p.alpha})`; 
                 ctx.fill();
                 
-                // 移動粒子
                 p.x += p.vx;
                 p.y += p.vy;
                 
-                // 重置超出邊界的粒子
                 if (p.y < -10) {
                     p.y = canvas.height + 10;
                     p.x = Math.random() * canvas.width;
@@ -205,47 +249,45 @@
         let currentActiveUnit = ''; 
         let rateValue = ''; 
 
-        // 初始化渲染：本金格子
         function renderPrincipalGrid() {
             const grid = document.getElementById('principal-grid');
             grid.innerHTML = units.map(u => `
-                <div class="col-span-${u.colSpan} bg-white rounded-xl shadow-sm border border-amber-100 p-${u.colSpan===2 ? '3' : '2'} flex items-center justify-center cursor-pointer active:bg-amber-50 transition-colors" onclick="openDigitPicker('${u.id}', '${u.name}')">
+                <div class="col-span-${u.colSpan} bg-white rounded-xl shadow-sm border border-amber-100 p-${u.colSpan===2 ? '3' : '2'} flex items-center justify-center cursor-pointer grid-press" onclick="openDigitPicker('${u.id}', '${u.name}')">
                     <span id="val-${u.id}" class="text-3xl font-black text-[#5C4033] w-${u.colSpan===2 ? '20' : '12'} text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
                     <span class="text-2xl font-bold text-[#5C4033]">${u.name}</span>
                 </div>
             `).join('');
         }
 
-        // 初始化渲染：數字鍵盤 (通用按鈕樣式)
+        // 渲染：數字鍵盤 (加入 this 傳遞，供動畫使用)
         function renderNumpads() {
-            const btnClass = "btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]";
+            const btnClass = "btn-press btn-transition bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_5px_0_#CBD5E1]";
             const nums = ['1','2','3','4','5','6','7','8','9'];
             
-            // 本金數字盤
-            let digitHtml = nums.map(n => `<button onclick="setDigit('${n}')" class="${btnClass}">${n}</button>`).join('');
+            // 本金鍵盤
+            let digitHtml = nums.map(n => `<button onclick="setDigit('${n}', this)" class="${btnClass}">${n}</button>`).join('');
             digitHtml += `
-                <button onclick="closeModal('digit-modal')" class="btn-press bg-gray-300 text-gray-700 text-2xl font-bold py-5 rounded-2xl shadow-[0_4px_0_#9CA3AF]">返回</button>
-                <button onclick="setDigit('0')" class="${btnClass}">0</button>
+                <button onclick="closeModal('digit-modal')" class="btn-press btn-transition bg-gray-300 text-gray-700 text-2xl font-bold py-5 rounded-2xl shadow-[0_5px_0_#9CA3AF]">返回</button>
+                <button onclick="setDigit('0', this)" class="${btnClass}">0</button>
                 <div class="pointer-events-none"></div>
             `;
             document.getElementById('digit-numpad').innerHTML = digitHtml;
 
-            // 利率數字盤
-            let rateHtml = nums.map(n => `<button onclick="appendRate('${n}')" class="${btnClass}">${n}</button>`).join('');
+            // 利率鍵盤
+            let rateHtml = nums.map(n => `<button onclick="appendRate('${n}', this)" class="${btnClass}">${n}</button>`).join('');
             rateHtml += `
-                <button onclick="appendRate('.')" class="btn-press bg-amber-100 text-4xl font-black text-amber-800 py-5 rounded-2xl shadow-[0_4px_0_#FCD34D]">.</button>
-                <button onclick="appendRate('0')" class="${btnClass}">0</button>
-                <button onclick="deleteRate()" class="btn-press bg-red-100 text-3xl font-bold text-red-600 py-5 rounded-2xl shadow-[0_4px_0_#FCA5A5] flex justify-center items-center">⌫</button>
+                <button onclick="appendRate('.', this)" class="btn-press btn-transition bg-amber-100 text-4xl font-black text-amber-800 py-5 rounded-2xl shadow-[0_5px_0_#FCD34D]">.</button>
+                <button onclick="appendRate('0', this)" class="${btnClass}">0</button>
+                <button onclick="deleteRate(this)" class="btn-press btn-transition bg-red-100 text-3xl font-bold text-red-600 py-5 rounded-2xl shadow-[0_5px_0_#FCA5A5] flex justify-center items-center">⌫</button>
             `;
             document.getElementById('rate-numpad').innerHTML = rateHtml;
         }
 
-        // 初始化執行
         renderPrincipalGrid();
         renderNumpads();
 
         // ==========================================
-        // 3. UI 互動與模態視窗邏輯
+        // 3. 視窗與互動邏輯
         // ==========================================
         function showBackdrop(show) {
             const bd = document.getElementById('modal-backdrop');
@@ -259,6 +301,7 @@
         }
 
         function openDigitPicker(unitKey, unitNameZh) {
+            hapticTap(); 
             currentActiveUnit = unitKey;
             document.getElementById('modal-unit-name').innerText = unitNameZh;
             document.getElementById('digit-modal').classList.remove('hidden');
@@ -267,29 +310,65 @@
         }
 
         function openRatePicker() {
+            hapticTap();
             document.getElementById('temp-rate-display').innerText = rateValue;
+            
+            // 如果原本有閃爍動畫，點開鍵盤時將其清除
+            document.getElementById('rate-input-box').classList.remove('animate-flash-error');
+
             document.getElementById('rate-modal').classList.remove('hidden');
             document.getElementById('rate-modal').classList.add('flex');
             showBackdrop(true);
         }
 
         function closeModal(modalId) {
+            hapticTap(); 
             document.getElementById(modalId).classList.add('hidden');
             document.getElementById(modalId).classList.remove('flex');
             showBackdrop(false);
         }
 
+        // 為按鈕加上臨時的「按壓鎖定」視覺特效
+        function applyPressEffect(btn) {
+            if (!btn) return;
+            btn.classList.add('is-pressed');
+            setTimeout(() => {
+                btn.classList.remove('is-pressed');
+            }, 300); // 維持 0.3 秒的高亮與縮小狀態
+        }
+
         // ==========================================
-        // 4. 輸入與計算邏輯
+        // 4. 輸入與計算邏輯 (加入延遲視窗關閉)
         // ==========================================
-        function setDigit(numStr) {
+        function setDigit(numStr, btnElement) {
+            hapticTap(); 
+            applyPressEffect(btnElement); // 觸發視覺按壓回饋
+
             digits[currentActiveUnit] = numStr;
             document.getElementById('val-' + currentActiveUnit).innerText = numStr;
             updateTotal();
-            closeModal('digit-modal');
+            
+            // 延遲 350 毫秒才關閉視窗，讓媽媽有時間確認數字已經填上
+            setTimeout(() => {
+                closeModal('digit-modal');
+            }, 350);
         }
 
-        function appendRate(char) {
+        function clearDigit(btnElement) {
+            hapticTap();
+            applyPressEffect(btnElement);
+            digits[currentActiveUnit] = '';
+            document.getElementById('val-' + currentActiveUnit).innerText = '';
+            updateTotal();
+            setTimeout(() => {
+                closeModal('digit-modal');
+            }, 350);
+        }
+
+        function appendRate(char, btnElement) {
+            hapticTap(); 
+            applyPressEffect(btnElement);
+
             if (char === '.') {
                 if (rateValue === '') rateValue = '0.';
                 else if (!rateValue.includes('.')) rateValue += '.';
@@ -302,7 +381,9 @@
             document.getElementById('val-rate').innerText = rateValue;
         }
 
-        function deleteRate() {
+        function deleteRate(btnElement) {
+            hapticTap(); 
+            applyPressEffect(btnElement);
             rateValue = rateValue.slice(0, -1);
             document.getElementById('temp-rate-display').innerText = rateValue;
             document.getElementById('val-rate').innerText = rateValue;
@@ -317,7 +398,6 @@
             document.getElementById('live-total-zh').innerText = formatChineseText(total);
         }
 
-        // 中文數字轉換邏輯 (完美保留原功能)
         function formatChineseText(num) {
             if (num === 0) return "零元";
             let str = "";
@@ -353,18 +433,23 @@
         }
 
         function resetAll() {
+            hapticTap();
             units.forEach(u => {
                 digits[u.id] = '';
                 document.getElementById('val-' + u.id).innerText = '';
             });
             rateValue = '';
             document.getElementById('val-rate').innerText = '';
+            
+            // 清除可能存在的閃爍動畫
+            document.getElementById('rate-input-box').classList.remove('animate-flash-error');
+            document.getElementById('principal-input-box').classList.remove('animate-flash-error');
+
             updateTotal();
             document.getElementById('result-box').classList.add('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // 動態渲染結果區塊
         function renderResultItem(title, amount, colorClass, emoji) {
             return `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
@@ -378,21 +463,50 @@
         }
 
         function calculate() {
+            hapticTap(); 
             let total = 0;
             units.forEach(u => {
                 if (digits[u.id] !== '') total += parseInt(digits[u.id]) * u.mult;
             });
             let r = parseFloat(rateValue);
 
+            const principalBox = document.getElementById('principal-input-box');
+            const rateBox = document.getElementById('rate-input-box');
+
+            // 檢查本金是否有填
             if (total <= 0) {
-                alert("芬媽，請先選擇存款本金喔！");
-                return;
-            }
-            if (rateValue === '' || isNaN(r) || r <= 0) {
-                alert("芬媽，請確認年利率有輸入數字喔！");
+                // 如果本金沒填，一樣閃爍紅光提示
+                principalBox.classList.remove('animate-flash-error');
+                void principalBox.offsetWidth; // 觸發重繪 (Reflow) 以便重新播放動畫
+                principalBox.classList.add('animate-flash-error');
+                
+                principalBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
 
+            // 檢查年利率是否有填 (無數字時閃爍紅光)
+            if (rateValue === '' || isNaN(r) || r <= 0) {
+                // 移除原有的動畫類別
+                rateBox.classList.remove('animate-flash-error');
+                // 觸發一次重繪 (Reflow)，確保動畫可以再次播放
+                void rateBox.offsetWidth; 
+                // 重新加上動畫類別，產生柔和紅光閃爍效果
+                rateBox.classList.add('animate-flash-error');
+                
+                // 動畫結束後自動移除該類別 (0.6秒 * 3次 = 1800毫秒)
+                setTimeout(() => {
+                    rateBox.classList.remove('animate-flash-error');
+                }, 1800);
+
+                rateBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // 若都填寫正確，清除可能存在的動畫
+            principalBox.classList.remove('animate-flash-error');
+            rateBox.classList.remove('animate-flash-error');
+
+            // 計算結果
             let interestYear = Math.round(total * (r / 100));
             let interestHalf = Math.round(interestYear / 2);
             let interestQuarter = Math.round(interestYear / 4);
