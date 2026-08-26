@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- 強制適配手機畫面，禁止縮放，表現得像原生 APP -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>芬媽專用利息計算器</title>
     <!-- 載入 Tailwind CSS -->
@@ -10,16 +9,15 @@
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            /* 防止長按選取文字影響操作 */
             user-select: none;
             -webkit-user-select: none;
-            background-color: #FEF7E7; /* 溫暖的米色背景 */
+            background-color: #FEF7E7;
+            margin: 0;
+            overflow-x: hidden;
         }
-        /* 按鈕點擊時的下壓動畫效果 */
         .btn-press:active {
             transform: translateY(4px) scale(0.98);
         }
-        /* 彈出視窗動畫 */
         @keyframes slideUp {
             from { transform: translateY(100%); }
             to { transform: translateY(0); }
@@ -27,21 +25,27 @@
         .animate-slide-up {
             animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+        /* 隱藏捲軸但保留滾動功能 */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-3 sm:p-6 pb-12">
+<body class="min-h-screen flex flex-col items-center p-3 sm:p-6 pb-12 relative">
 
-    <!-- 主容器 -->
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-lg p-5 border-[3px] border-[#FDE68A] flex flex-col gap-5">
+    <!-- HTML5 Canvas 背景特效 (金色粒子) -->
+    <canvas id="bg-canvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- 主容器 (設定 z-10 確保在 Canvas 之上) -->
+    <div class="w-full max-w-md bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-5 border-[3px] border-[#FDE68A] flex flex-col gap-5 z-10 relative mt-2">
         
-        <!-- 大標題 -->
-        <h1 class="text-3xl font-black text-[#5C4033] text-center mt-2">
+        <h1 class="text-3xl font-black text-[#5C4033] text-center mt-2 drop-shadow-sm">
             👵 芬媽專用利息計算器
         </h1>
 
         <!-- ==================== 存款本金區塊 ==================== -->
-        <div class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A]">
-            
+        <div class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A] shadow-inner">
             <h2 class="text-2xl font-bold text-[#5C4033] text-center mb-4">
                 💰 存款本金有多少呢？
             </h2>
@@ -49,7 +53,7 @@
             <!-- 總本金顯示 -->
             <div class="mb-5 p-4 bg-white rounded-xl text-center border-2 border-dashed border-[#FCD34D] shadow-sm flex flex-col items-center">
                 <span class="text-lg text-gray-500 font-bold block mb-1">👉 目前總本金為</span>
-                <div class="text-[36px] leading-none font-black text-[#D35400] mb-3" id="live-total-num">
+                <div class="text-[36px] leading-none font-black text-[#D35400] mb-3 transition-all" id="live-total-num">
                     $0
                 </div>
                 <!-- 中文數字顯示 -->
@@ -59,52 +63,16 @@
             </div>
             
             <!-- 單位輸入網格 -->
-            <div class="grid grid-cols-2 gap-3">
-                <!-- 百萬 -->
-                <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-2 flex items-center justify-center cursor-pointer active:bg-amber-50" onclick="openDigitPicker('m100', '百萬')">
-                    <span id="val-m100" class="text-3xl font-black text-[#5C4033] w-12 text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
-                    <span class="text-2xl font-bold text-[#5C4033]">百萬</span>
-                </div>
-                <!-- 十萬 -->
-                <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-2 flex items-center justify-center cursor-pointer active:bg-amber-50" onclick="openDigitPicker('m10', '十萬')">
-                    <span id="val-m10" class="text-3xl font-black text-[#5C4033] w-12 text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
-                    <span class="text-2xl font-bold text-[#5C4033]">十萬</span>
-                </div>
-                <!-- 萬 -->
-                <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-2 flex items-center justify-center cursor-pointer active:bg-amber-50" onclick="openDigitPicker('m1', '萬')">
-                    <span id="val-m1" class="text-3xl font-black text-[#5C4033] w-12 text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
-                    <span class="text-2xl font-bold text-[#5C4033]">萬</span>
-                </div>
-                <!-- 千 -->
-                <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-2 flex items-center justify-center cursor-pointer active:bg-amber-50" onclick="openDigitPicker('t1', '千')">
-                    <span id="val-t1" class="text-3xl font-black text-[#5C4033] w-12 text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
-                    <span class="text-2xl font-bold text-[#5C4033]">千</span>
-                </div>
-                <!-- 百 -->
-                <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-2 flex items-center justify-center cursor-pointer active:bg-amber-50" onclick="openDigitPicker('h1', '百')">
-                    <span id="val-h1" class="text-3xl font-black text-[#5C4033] w-12 text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
-                    <span class="text-2xl font-bold text-[#5C4033]">百</span>
-                </div>
-                <!-- 十 -->
-                <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-2 flex items-center justify-center cursor-pointer active:bg-amber-50" onclick="openDigitPicker('ten', '十')">
-                    <span id="val-ten" class="text-3xl font-black text-[#5C4033] w-12 text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
-                    <span class="text-2xl font-bold text-[#5C4033]">十</span>
-                </div>
-                <!-- 元 (跨兩欄) -->
-                <div class="col-span-2 bg-white rounded-xl shadow-sm border border-amber-100 p-3 flex items-center justify-center cursor-pointer active:bg-amber-50" onclick="openDigitPicker('one', '元')">
-                    <span id="val-one" class="text-3xl font-black text-[#5C4033] w-20 text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-3"></span>
-                    <span class="text-2xl font-bold text-[#5C4033]">元</span>
-                </div>
+            <div class="grid grid-cols-2 gap-3" id="principal-grid">
+                <!-- JavaScript 動態渲染格子，保持 HTML 乾淨 -->
             </div>
-
         </div>
 
         <!-- ==================== 年利率區塊 ==================== -->
-        <div class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A] flex flex-col items-center cursor-pointer active:bg-amber-50" onclick="openRatePicker()">
+        <div class="bg-[#FFFDF5] p-4 rounded-2xl border-2 border-[#FDE68A] flex flex-col items-center cursor-pointer active:bg-amber-50 shadow-inner transition-colors" onclick="openRatePicker()">
             <label class="block text-2xl font-bold text-[#5C4033] mb-2 pointer-events-none">
                 📈 年利率 (%)
             </label>
-            <!-- 預設為空，保持乾淨 -->
             <div class="bg-white px-8 py-3 rounded-xl border border-amber-200 shadow-inner w-2/3 flex justify-center items-center pointer-events-none h-[72px]">
                 <span id="val-rate" class="text-4xl font-black text-[#5C4033]"></span>
             </div>
@@ -112,142 +80,208 @@
 
         <!-- ==================== 動作按鈕 ==================== -->
         <div class="flex gap-3">
-            <!-- 重新開始按鈕 -->
             <button onclick="resetAll()" class="w-1/3 btn-press bg-white border-2 border-[#D35400] text-[#D35400] text-xl font-bold py-4 rounded-2xl shadow-sm">
                 🔄 重設
             </button>
-            <!-- 計算按鈕 -->
             <button onclick="calculate()" class="w-2/3 btn-press bg-[#FF8C00] text-white text-2xl font-black py-4 rounded-2xl shadow-[0_5px_0_#D68910]">
                 開始計算利息
             </button>
         </div>
 
         <!-- ==================== 結果顯示區 ==================== -->
-        <div id="result-box" class="hidden space-y-4 bg-[#FFFDF5] p-5 rounded-2xl border-2 border-[#FDE68A]">
+        <div id="result-box" class="hidden space-y-4 bg-[#FFFDF5] p-5 rounded-2xl border-2 border-[#FDE68A] shadow-inner mt-2">
             <h2 class="text-2xl font-bold text-center text-[#5C4033] mb-2 border-b-2 border-amber-200 pb-2">
                 🎉 計算結果
             </h2>
-            
-            <!-- 一年的利息 -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
-                <span class="text-lg font-bold text-gray-600 mb-1">💰 一年的利息</span>
-                <span id="res-year" class="text-[36px] font-black text-[#D35400] mb-3">$0</span>
-                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-year-zh">零元</div>
-            </div>
-
-            <!-- 每半年的利息 -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
-                <span class="text-lg font-bold text-gray-600 mb-1">📅 每半年的利息</span>
-                <span id="res-half" class="text-[32px] font-black text-[#E67E22] mb-3">$0</span>
-                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-half-zh">零元</div>
-            </div>
-
-            <!-- 每三個月的利息 -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
-                <span class="text-lg font-bold text-gray-600 mb-1">🍂 每三個月的利息</span>
-                <span id="res-quarter" class="text-[32px] font-black text-[#E67E22] mb-3">$0</span>
-                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-quarter-zh">零元</div>
-            </div>
-
-            <!-- 每個月的利息 -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
-                <span class="text-lg font-bold text-gray-600 mb-1">💬 每個月的利息</span>
-                <span id="res-month" class="text-[32px] font-black text-[#F39C12] mb-3">$0</span>
-                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-month-zh">零元</div>
+            <div id="results-container" class="flex flex-col gap-4">
+                <!-- JavaScript 動態渲染結果，保持 HTML 乾淨 -->
             </div>
         </div>
 
     </div>
 
-    <!-- ==================== 本金專用 0-9 選擇浮動視窗 (Modal) ==================== -->
-    <div id="digit-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex-col justify-end">
-        <div class="bg-[#F8FAFC] rounded-t-3xl p-5 pb-8 animate-slide-up shadow-2xl border-t border-gray-200">
+    <!-- ==================== 共用 Modal 遮罩 ==================== -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity" onclick="closeAllModals()"></div>
+
+    <!-- ==================== 本金專用 0-9 選擇浮動視窗 ==================== -->
+    <div id="digit-modal" class="fixed inset-x-0 bottom-0 z-50 hidden flex-col justify-end">
+        <div class="bg-[#F8FAFC] rounded-t-3xl p-5 pb-8 animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-gray-200">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-2xl font-black text-gray-800">
-                    請選擇 <span id="modal-unit-name" class="text-[#D35400] underline">萬</span> 的數字
+                    請選擇 <span id="modal-unit-name" class="text-[#D35400] underline decoration-4 underline-offset-4">萬</span> 的數字
                 </h3>
                 <button onclick="setDigit('')" class="btn-press bg-red-100 text-red-600 font-bold text-xl px-4 py-2 rounded-xl">
                     清空這格
                 </button>
             </div>
-            
-            <div class="grid grid-cols-3 gap-3">
-                <button onclick="setDigit('1')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">1</button>
-                <button onclick="setDigit('2')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">2</button>
-                <button onclick="setDigit('3')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">3</button>
-                <button onclick="setDigit('4')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">4</button>
-                <button onclick="setDigit('5')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">5</button>
-                <button onclick="setDigit('6')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">6</button>
-                <button onclick="setDigit('7')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">7</button>
-                <button onclick="setDigit('8')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">8</button>
-                <button onclick="setDigit('9')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">9</button>
-                
-                <button onclick="closeModal('digit-modal')" class="btn-press bg-gray-300 text-gray-700 text-2xl font-bold py-5 rounded-2xl shadow-[0_4px_0_#9CA3AF]">
-                    返回
-                </button>
-                <button onclick="setDigit('0')" class="btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]">0</button>
-                <div class="pointer-events-none"></div>
+            <div class="grid grid-cols-3 gap-3" id="digit-numpad">
+                <!-- JS 生成 -->
             </div>
         </div>
     </div>
 
     <!-- ==================== 利率專用鍵盤浮動視窗 ==================== -->
-    <div id="rate-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex-col justify-end">
-        <div class="bg-[#F8FAFC] rounded-t-3xl p-5 pb-8 animate-slide-up shadow-2xl border-t border-gray-200">
+    <div id="rate-modal" class="fixed inset-x-0 bottom-0 z-50 hidden flex-col justify-end">
+        <div class="bg-[#F8FAFC] rounded-t-3xl p-5 pb-8 animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-gray-200">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-black text-gray-800">輸入年利率 (%)</h3>
                 <button onclick="closeModal('rate-modal')" class="btn-press bg-[#FF8C00] text-white font-bold text-xl px-6 py-2 rounded-xl shadow-[0_3px_0_#D68910]">
                     確認
                 </button>
             </div>
-            <!-- 保留高度，避免沒有數值時排版塌陷 -->
-            <div class="bg-white text-4xl font-black text-center py-4 mb-4 rounded-xl border border-gray-300 shadow-inner text-[#5C4033] min-h-[74px] flex items-center justify-center" id="temp-rate-display">
-                <!-- 預設為空 -->
+            <div class="bg-white text-4xl font-black text-center py-4 mb-4 rounded-xl border border-gray-300 shadow-inner text-[#5C4033] min-h-[74px] flex items-center justify-center tracking-widest" id="temp-rate-display">
             </div>
-            <div class="grid grid-cols-3 gap-3">
-                <button onclick="appendRate('1')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">1</button>
-                <button onclick="appendRate('2')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">2</button>
-                <button onclick="appendRate('3')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">3</button>
-                <button onclick="appendRate('4')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">4</button>
-                <button onclick="appendRate('5')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">5</button>
-                <button onclick="appendRate('6')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">6</button>
-                <button onclick="appendRate('7')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">7</button>
-                <button onclick="appendRate('8')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">8</button>
-                <button onclick="appendRate('9')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">9</button>
-                <button onclick="appendRate('.')" class="btn-press bg-amber-100 text-4xl font-black text-amber-800 py-4 rounded-xl shadow-[0_4px_0_#FCD34D]">.</button>
-                <button onclick="appendRate('0')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">0</button>
-                <button onclick="deleteRate()" class="btn-press bg-red-100 text-2xl font-bold text-red-600 py-4 rounded-xl shadow-[0_4px_0_#FCA5A5] flex justify-center items-center">⌫</button>
+            <div class="grid grid-cols-3 gap-3" id="rate-numpad">
+                <!-- JS 生成 -->
             </div>
         </div>
     </div>
 
     <script>
-        const digits = { m100: '', m10: '', m1: '', t1: '', h1: '', ten: '', one: '' };
-        const multipliers = { m100: 1000000, m10: 100000, m1: 10000, t1: 1000, h1: 100, ten: 10, one: 1 };
-        let currentActiveUnit = ''; 
-        let rateValue = ''; // 預設改為空字串
+        // ==========================================
+        // 1. HTML5 Canvas 背景特效 (溫暖的金色粒子)
+        // ==========================================
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
 
-        // 定義數字對應的中文字
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 4 + 1,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: Math.random() * -1 - 0.2,
+                    alpha: Math.random() * 0.5 + 0.2
+                });
+            }
+        }
+
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(253, 230, 138, ${p.alpha})`; // Tailwind amber-200
+                ctx.fill();
+                
+                // 移動粒子
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // 重置超出邊界的粒子
+                if (p.y < -10) {
+                    p.y = canvas.height + 10;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(drawParticles);
+        }
+
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+        drawParticles();
+
+        // ==========================================
+        // 2. 核心邏輯與 UI 渲染
+        // ==========================================
+        const units = [
+            { id: 'm100', name: '百萬', mult: 1000000, colSpan: 1 },
+            { id: 'm10', name: '十萬', mult: 100000, colSpan: 1 },
+            { id: 'm1', name: '萬', mult: 10000, colSpan: 1 },
+            { id: 't1', name: '千', mult: 1000, colSpan: 1 },
+            { id: 'h1', name: '百', mult: 100, colSpan: 1 },
+            { id: 'ten', name: '十', mult: 10, colSpan: 1 },
+            { id: 'one', name: '元', mult: 1, colSpan: 2 }
+        ];
+        
+        const digits = { m100: '', m10: '', m1: '', t1: '', h1: '', ten: '', one: '' };
         const zhNums = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+        
+        let currentActiveUnit = ''; 
+        let rateValue = ''; 
+
+        // 初始化渲染：本金格子
+        function renderPrincipalGrid() {
+            const grid = document.getElementById('principal-grid');
+            grid.innerHTML = units.map(u => `
+                <div class="col-span-${u.colSpan} bg-white rounded-xl shadow-sm border border-amber-100 p-${u.colSpan===2 ? '3' : '2'} flex items-center justify-center cursor-pointer active:bg-amber-50 transition-colors" onclick="openDigitPicker('${u.id}', '${u.name}')">
+                    <span id="val-${u.id}" class="text-3xl font-black text-[#5C4033] w-${u.colSpan===2 ? '20' : '12'} text-center border-b-4 border-[#FCD34D] h-10 flex items-center justify-center mr-2"></span>
+                    <span class="text-2xl font-bold text-[#5C4033]">${u.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // 初始化渲染：數字鍵盤 (通用按鈕樣式)
+        function renderNumpads() {
+            const btnClass = "btn-press bg-white text-4xl font-black text-gray-800 py-5 rounded-2xl shadow-[0_4px_0_#CBD5E1]";
+            const nums = ['1','2','3','4','5','6','7','8','9'];
+            
+            // 本金數字盤
+            let digitHtml = nums.map(n => `<button onclick="setDigit('${n}')" class="${btnClass}">${n}</button>`).join('');
+            digitHtml += `
+                <button onclick="closeModal('digit-modal')" class="btn-press bg-gray-300 text-gray-700 text-2xl font-bold py-5 rounded-2xl shadow-[0_4px_0_#9CA3AF]">返回</button>
+                <button onclick="setDigit('0')" class="${btnClass}">0</button>
+                <div class="pointer-events-none"></div>
+            `;
+            document.getElementById('digit-numpad').innerHTML = digitHtml;
+
+            // 利率數字盤
+            let rateHtml = nums.map(n => `<button onclick="appendRate('${n}')" class="${btnClass}">${n}</button>`).join('');
+            rateHtml += `
+                <button onclick="appendRate('.')" class="btn-press bg-amber-100 text-4xl font-black text-amber-800 py-5 rounded-2xl shadow-[0_4px_0_#FCD34D]">.</button>
+                <button onclick="appendRate('0')" class="${btnClass}">0</button>
+                <button onclick="deleteRate()" class="btn-press bg-red-100 text-3xl font-bold text-red-600 py-5 rounded-2xl shadow-[0_4px_0_#FCA5A5] flex justify-center items-center">⌫</button>
+            `;
+            document.getElementById('rate-numpad').innerHTML = rateHtml;
+        }
+
+        // 初始化執行
+        renderPrincipalGrid();
+        renderNumpads();
+
+        // ==========================================
+        // 3. UI 互動與模態視窗邏輯
+        // ==========================================
+        function showBackdrop(show) {
+            const bd = document.getElementById('modal-backdrop');
+            if(show) { bd.classList.remove('hidden'); bd.classList.add('block'); }
+            else { bd.classList.add('hidden'); bd.classList.remove('block'); }
+        }
+
+        function closeAllModals() {
+            closeModal('digit-modal');
+            closeModal('rate-modal');
+        }
 
         function openDigitPicker(unitKey, unitNameZh) {
             currentActiveUnit = unitKey;
             document.getElementById('modal-unit-name').innerText = unitNameZh;
             document.getElementById('digit-modal').classList.remove('hidden');
             document.getElementById('digit-modal').classList.add('flex');
+            showBackdrop(true);
         }
 
         function openRatePicker() {
             document.getElementById('temp-rate-display').innerText = rateValue;
             document.getElementById('rate-modal').classList.remove('hidden');
             document.getElementById('rate-modal').classList.add('flex');
+            showBackdrop(true);
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
             document.getElementById(modalId).classList.remove('flex');
+            showBackdrop(false);
         }
 
+        // ==========================================
+        // 4. 輸入與計算邏輯
+        // ==========================================
         function setDigit(numStr) {
             digits[currentActiveUnit] = numStr;
             document.getElementById('val-' + currentActiveUnit).innerText = numStr;
@@ -276,32 +310,26 @@
 
         function updateTotal() {
             let total = 0;
-            for (let key in digits) {
-                if (digits[key] !== '') {
-                    total += parseInt(digits[key]) * multipliers[key];
-                }
-            }
-            
+            units.forEach(u => {
+                if (digits[u.id] !== '') total += parseInt(digits[u.id]) * u.mult;
+            });
             document.getElementById('live-total-num').innerText = '$' + total.toLocaleString('en-US');
             document.getElementById('live-total-zh').innerText = formatChineseText(total);
         }
 
-        // 純中文顯示邏輯
+        // 中文數字轉換邏輯 (完美保留原功能)
         function formatChineseText(num) {
             if (num === 0) return "零元";
-            
             let str = "";
             let m100 = Math.floor(num / 1000000) % 10;
             let m10  = Math.floor(num / 100000) % 10;
             let m1   = Math.floor(num / 10000) % 10;
             
-            // 處理「萬」以上的區塊 (百萬、十萬、萬)
             let wanSection = "";
             if (m100 > 0) wanSection += zhNums[m100] + "百";
-            if (m10 === 0 && m100 > 0 && m1 > 0) wanSection += "零"; // e.g. 一百零五萬
+            if (m10 === 0 && m100 > 0 && m1 > 0) wanSection += "零";
             if (m10 > 0) wanSection += zhNums[m10] + "十";
             if (m1 > 0) wanSection += zhNums[m1];
-            
             if (wanSection !== "") str += wanSection + "萬";
             
             let t1   = Math.floor(num / 1000) % 10;
@@ -309,51 +337,51 @@
             let ten  = Math.floor(num / 10) % 10;
             let one  = Math.floor(num % 10);
             
-            // 處理小於萬的區塊 (千、百、十、元)
             let baseSection = "";
             if (t1 > 0) baseSection += zhNums[t1] + "千";
             if (t1 === 0 && str !== "" && (h1 > 0 || ten > 0 || one > 0)) baseSection += "零";
-            
             if (h1 > 0) baseSection += zhNums[h1] + "百";
             if (h1 === 0 && (t1 > 0 || str !== "") && (ten > 0 || one > 0)) baseSection += "零";
-            
             if (ten > 0) baseSection += zhNums[ten] + "十";
             if (ten === 0 && (h1 > 0 || t1 > 0 || str !== "") && one > 0) baseSection += "零";
-            
             if (one > 0) baseSection += zhNums[one];
             
             str += baseSection;
-            
-            // 清理多餘連續的零 (例如：一十萬零零五十 -> 一十萬零五十)
             str = str.replace(/零+/g, '零');
-            // 移除尾巴多餘的零
-            if (str.endsWith('零')) {
-                str = str.slice(0, -1);
-            }
-            
+            if (str.endsWith('零')) str = str.slice(0, -1);
             return str + "元";
         }
 
         function resetAll() {
-            // 清空本金
-            for (let key in digits) {
-                digits[key] = '';
-                document.getElementById('val-' + key).innerText = '';
-            }
-            // 清空利率
+            units.forEach(u => {
+                digits[u.id] = '';
+                document.getElementById('val-' + u.id).innerText = '';
+            });
             rateValue = '';
             document.getElementById('val-rate').innerText = '';
-            
             updateTotal();
             document.getElementById('result-box').classList.add('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // 動態渲染結果區塊
+        function renderResultItem(title, amount, colorClass, emoji) {
+            return `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
+                    <span class="text-lg font-bold text-gray-600 mb-1">${emoji} ${title}</span>
+                    <span class="text-[32px] sm:text-[36px] font-black ${colorClass} mb-3">$${amount.toLocaleString('en-US')}</span>
+                    <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full">
+                        ${formatChineseText(amount)}
+                    </div>
+                </div>
+            `;
+        }
+
         function calculate() {
             let total = 0;
-            for (let key in digits) {
-                if (digits[key] !== '') total += parseInt(digits[key]) * multipliers[key];
-            }
+            units.forEach(u => {
+                if (digits[u.id] !== '') total += parseInt(digits[u.id]) * u.mult;
+            });
             let r = parseFloat(rateValue);
 
             if (total <= 0) {
@@ -365,25 +393,18 @@
                 return;
             }
 
-            // 計算各期利息
             let interestYear = Math.round(total * (r / 100));
             let interestHalf = Math.round(interestYear / 2);
             let interestQuarter = Math.round(interestYear / 4);
             let interestMonth = Math.round(interestYear / 12);
 
-            // 更新阿拉伯數字
-            document.getElementById('res-year').innerText = '$' + interestYear.toLocaleString('en-US');
-            document.getElementById('res-half').innerText = '$' + interestHalf.toLocaleString('en-US');
-            document.getElementById('res-quarter').innerText = '$' + interestQuarter.toLocaleString('en-US');
-            document.getElementById('res-month').innerText = '$' + interestMonth.toLocaleString('en-US');
+            const resultsContainer = document.getElementById('results-container');
+            resultsContainer.innerHTML = 
+                renderResultItem('一年的利息', interestYear, 'text-[#D35400]', '💰') +
+                renderResultItem('每半年的利息', interestHalf, 'text-[#E67E22]', '📅') +
+                renderResultItem('每三個月的利息', interestQuarter, 'text-[#E67E22]', '🍂') +
+                renderResultItem('每個月的利息', interestMonth, 'text-[#F39C12]', '💬');
 
-            // 更新中文數字 (套用同一套邏輯)
-            document.getElementById('res-year-zh').innerText = formatChineseText(interestYear);
-            document.getElementById('res-half-zh').innerText = formatChineseText(interestHalf);
-            document.getElementById('res-quarter-zh').innerText = formatChineseText(interestQuarter);
-            document.getElementById('res-month-zh').innerText = formatChineseText(interestMonth);
-
-            // 顯示並滑動到結果
             document.getElementById('result-box').classList.remove('hidden');
             setTimeout(() => {
                 document.getElementById('result-box').scrollIntoView({ behavior: 'smooth', block: 'end' });
