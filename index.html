@@ -46,14 +46,14 @@
                 💰 存款本金有多少呢？
             </h2>
 
-            <!-- 總本金顯示 (置於上方) -->
+            <!-- 總本金顯示 -->
             <div class="mb-5 p-4 bg-white rounded-xl text-center border-2 border-dashed border-[#FCD34D] shadow-sm flex flex-col items-center">
                 <span class="text-lg text-gray-500 font-bold block mb-1">👉 目前總本金為</span>
                 <div class="text-[36px] leading-none font-black text-[#D35400] mb-3" id="live-total-num">
                     $0
                 </div>
-                <!-- 升級版純中文對應顯示 -->
-                <div class="text-[20px] sm:text-[22px] font-bold text-[#8B4513] bg-amber-100 inline-block px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="live-total-zh">
+                <!-- 中文數字顯示 -->
+                <div class="text-[20px] sm:text-[22px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="live-total-zh">
                     零元
                 </div>
             </div>
@@ -104,8 +104,9 @@
             <label class="block text-2xl font-bold text-[#5C4033] mb-2 pointer-events-none">
                 📈 年利率 (%)
             </label>
-            <div class="bg-white px-8 py-3 rounded-xl border border-amber-200 shadow-inner w-2/3 flex justify-center items-center pointer-events-none">
-                <span id="val-rate" class="text-4xl font-black text-[#5C4033]">1.5</span>
+            <!-- 預設為空，保持乾淨 -->
+            <div class="bg-white px-8 py-3 rounded-xl border border-amber-200 shadow-inner w-2/3 flex justify-center items-center pointer-events-none h-[72px]">
+                <span id="val-rate" class="text-4xl font-black text-[#5C4033]"></span>
             </div>
         </div>
 
@@ -122,25 +123,37 @@
         </div>
 
         <!-- ==================== 結果顯示區 ==================== -->
-        <div id="result-box" class="hidden space-y-3 bg-[#FFFDF5] p-5 rounded-2xl border-2 border-[#FDE68A]">
-            <h2 class="text-2xl font-bold text-center text-[#5C4033] mb-3 border-b-2 border-amber-200 pb-2">
+        <div id="result-box" class="hidden space-y-4 bg-[#FFFDF5] p-5 rounded-2xl border-2 border-[#FDE68A]">
+            <h2 class="text-2xl font-bold text-center text-[#5C4033] mb-2 border-b-2 border-amber-200 pb-2">
                 🎉 計算結果
             </h2>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+            
+            <!-- 一年的利息 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
                 <span class="text-lg font-bold text-gray-600 mb-1">💰 一年的利息</span>
-                <span id="res-year" class="text-[36px] font-black text-[#D35400]">$0</span>
+                <span id="res-year" class="text-[36px] font-black text-[#D35400] mb-3">$0</span>
+                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-year-zh">零元</div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+
+            <!-- 每半年的利息 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
                 <span class="text-lg font-bold text-gray-600 mb-1">📅 每半年的利息</span>
-                <span id="res-half" class="text-[28px] font-black text-[#E67E22]">$0</span>
+                <span id="res-half" class="text-[32px] font-black text-[#E67E22] mb-3">$0</span>
+                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-half-zh">零元</div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+
+            <!-- 每三個月的利息 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
                 <span class="text-lg font-bold text-gray-600 mb-1">🍂 每三個月的利息</span>
-                <span id="res-quarter" class="text-[28px] font-black text-[#E67E22]">$0</span>
+                <span id="res-quarter" class="text-[32px] font-black text-[#E67E22] mb-3">$0</span>
+                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-quarter-zh">零元</div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center">
+
+            <!-- 每個月的利息 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex flex-col items-center w-full">
                 <span class="text-lg font-bold text-gray-600 mb-1">💬 每個月的利息</span>
-                <span id="res-month" class="text-[28px] font-black text-[#F39C12]">$0</span>
+                <span id="res-month" class="text-[32px] font-black text-[#F39C12] mb-3">$0</span>
+                <div class="text-[18px] sm:text-[20px] font-bold text-[#8B4513] bg-amber-100 text-center px-4 py-1.5 rounded-xl border border-amber-200 w-full" id="res-month-zh">零元</div>
             </div>
         </div>
 
@@ -187,8 +200,9 @@
                     確認
                 </button>
             </div>
-            <div class="bg-white text-4xl font-black text-center py-4 mb-4 rounded-xl border border-gray-300 shadow-inner text-[#5C4033]" id="temp-rate-display">
-                1.5
+            <!-- 保留高度，避免沒有數值時排版塌陷 -->
+            <div class="bg-white text-4xl font-black text-center py-4 mb-4 rounded-xl border border-gray-300 shadow-inner text-[#5C4033] min-h-[74px] flex items-center justify-center" id="temp-rate-display">
+                <!-- 預設為空 -->
             </div>
             <div class="grid grid-cols-3 gap-3">
                 <button onclick="appendRate('1')" class="btn-press bg-white text-4xl font-black text-gray-800 py-4 rounded-xl shadow-[0_4px_0_#CBD5E1]">1</button>
@@ -211,7 +225,7 @@
         const digits = { m100: '', m10: '', m1: '', t1: '', h1: '', ten: '', one: '' };
         const multipliers = { m100: 1000000, m10: 100000, m1: 10000, t1: 1000, h1: 100, ten: 10, one: 1 };
         let currentActiveUnit = ''; 
-        let rateValue = '1.5';
+        let rateValue = ''; // 預設改為空字串
 
         // 定義數字對應的中文字
         const zhNums = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
@@ -224,7 +238,7 @@
         }
 
         function openRatePicker() {
-            document.getElementById('temp-rate-display').innerText = rateValue || '0';
+            document.getElementById('temp-rate-display').innerText = rateValue;
             document.getElementById('rate-modal').classList.remove('hidden');
             document.getElementById('rate-modal').classList.add('flex');
         }
@@ -251,13 +265,13 @@
             }
             if(rateValue.length > 5) rateValue = rateValue.substring(0, 5); 
             document.getElementById('temp-rate-display').innerText = rateValue;
-            document.getElementById('val-rate').innerText = rateValue || '0';
+            document.getElementById('val-rate').innerText = rateValue;
         }
 
         function deleteRate() {
             rateValue = rateValue.slice(0, -1);
-            document.getElementById('temp-rate-display').innerText = rateValue || '0';
-            document.getElementById('val-rate').innerText = rateValue || '0';
+            document.getElementById('temp-rate-display').innerText = rateValue;
+            document.getElementById('val-rate').innerText = rateValue;
         }
 
         function updateTotal() {
@@ -298,7 +312,6 @@
             // 處理小於萬的區塊 (千、百、十、元)
             let baseSection = "";
             if (t1 > 0) baseSection += zhNums[t1] + "千";
-            // 如果萬的區塊有數字，但沒有千，而且千位以下有數字，補 0
             if (t1 === 0 && str !== "" && (h1 > 0 || ten > 0 || one > 0)) baseSection += "零";
             
             if (h1 > 0) baseSection += zhNums[h1] + "百";
@@ -322,12 +335,15 @@
         }
 
         function resetAll() {
+            // 清空本金
             for (let key in digits) {
                 digits[key] = '';
                 document.getElementById('val-' + key).innerText = '';
             }
-            rateValue = '1.5';
-            document.getElementById('val-rate').innerText = '1.5';
+            // 清空利率
+            rateValue = '';
+            document.getElementById('val-rate').innerText = '';
+            
             updateTotal();
             document.getElementById('result-box').classList.add('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -341,24 +357,33 @@
             let r = parseFloat(rateValue);
 
             if (total <= 0) {
-                alert("芬媽，請先輸入存款本金喔！");
+                alert("芬媽，請先選擇存款本金喔！");
                 return;
             }
-            if (isNaN(r) || r <= 0) {
-                alert("芬媽，請確認年利率有輸入正確喔！");
+            if (rateValue === '' || isNaN(r) || r <= 0) {
+                alert("芬媽，請確認年利率有輸入數字喔！");
                 return;
             }
 
+            // 計算各期利息
             let interestYear = Math.round(total * (r / 100));
             let interestHalf = Math.round(interestYear / 2);
             let interestQuarter = Math.round(interestYear / 4);
             let interestMonth = Math.round(interestYear / 12);
 
+            // 更新阿拉伯數字
             document.getElementById('res-year').innerText = '$' + interestYear.toLocaleString('en-US');
             document.getElementById('res-half').innerText = '$' + interestHalf.toLocaleString('en-US');
             document.getElementById('res-quarter').innerText = '$' + interestQuarter.toLocaleString('en-US');
             document.getElementById('res-month').innerText = '$' + interestMonth.toLocaleString('en-US');
 
+            // 更新中文數字 (套用同一套邏輯)
+            document.getElementById('res-year-zh').innerText = formatChineseText(interestYear);
+            document.getElementById('res-half-zh').innerText = formatChineseText(interestHalf);
+            document.getElementById('res-quarter-zh').innerText = formatChineseText(interestQuarter);
+            document.getElementById('res-month-zh').innerText = formatChineseText(interestMonth);
+
+            // 顯示並滑動到結果
             document.getElementById('result-box').classList.remove('hidden');
             setTimeout(() => {
                 document.getElementById('result-box').scrollIntoView({ behavior: 'smooth', block: 'end' });
